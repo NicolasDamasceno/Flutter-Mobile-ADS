@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -38,26 +41,89 @@ class _MyHomePageState extends State<MyHomePage> {
 
   static const LatLng _ponteEstaiada = LatLng(-5.0701855, -42.8029442);
 
-  void _carregarMarcadores() {
+  /// Transforma uma imagem de assets/imagens em um ícone redondo, com borda
+  /// branca, para usar no lugar do alfinete vermelho padrão do marcador.
+  Future<BitmapDescriptor> _iconeComFoto(String caminho) async {
+    const int tamanho = 200; // em pixels
+    const double raio = tamanho / 2;
+    const double borda = 8;
+
+    // Carrega a foto já reduzida, para não pesar na memória
+    final ByteData dados = await rootBundle.load(caminho);
+    final ui.Codec codec = await ui.instantiateImageCodec(
+      dados.buffer.asUint8List(),
+      targetHeight: tamanho,
+    );
+    final ui.Image foto = (await codec.getNextFrame()).image;
+
+    final ui.PictureRecorder gravador = ui.PictureRecorder();
+    final Canvas canvas = Canvas(gravador);
+
+    // Círculo branco que forma a borda
+    canvas.drawCircle(
+      const Offset(raio, raio),
+      raio,
+      Paint()..color = Colors.white,
+    );
+
+    // Recorta o centro da foto em formato de círculo
+    canvas.clipPath(Path()
+      ..addOval(Rect.fromCircle(
+        center: const Offset(raio, raio),
+        radius: raio - borda,
+      )));
+    final double lado =
+        (foto.width < foto.height ? foto.width : foto.height).toDouble();
+    canvas.drawImageRect(
+      foto,
+      Rect.fromLTWH(
+          (foto.width - lado) / 2, (foto.height - lado) / 2, lado, lado),
+      const Rect.fromLTWH(0, 0, tamanho * 1.0, tamanho * 1.0),
+      Paint()..filterQuality = FilterQuality.high,
+    );
+
+    final ui.Image icone =
+        await gravador.endRecording().toImage(tamanho, tamanho);
+    final ByteData? png =
+        await icone.toByteData(format: ui.ImageByteFormat.png);
+    // width = tamanho do ícone no mapa
+    return BitmapDescriptor.bytes(png!.buffer.asUint8List(), width: 64);
+  }
+
+  Future<void> _carregarMarcadores() async {
+    final BitmapDescriptor iconePonte =
+        await _iconeComFoto('assets/imagens/ponte-estaiada.jpg');
+    final BitmapDescriptor iconeIfpi =
+        await _iconeComFoto('assets/imagens/ifpi-central.jpeg');
+    final BitmapDescriptor iconeIfpiSul =
+        await _iconeComFoto('assets/imagens/ifpi-sul.png');
+
     Set<Marker> marcadoresLocal = {};
-    Marker marcadorPonteEstaiada = const Marker(
-      markerId: MarkerId('Ponte Estaiada'),
+    Marker marcadorPonteEstaiada = Marker(
+      markerId: const MarkerId('Ponte Estaiada'),
       position: _ponteEstaiada,
-      infoWindow: InfoWindow(title: 'Ponte Estaiada', snippet: 'Teresina - PI'),
+      icon: iconePonte,
+      infoWindow:
+          const InfoWindow(title: 'Ponte Estaiada', snippet: 'Teresina - PI'),
     );
-    Marker marcadorIfpi = const Marker(
-      markerId: MarkerId('IFPI'),
-      position: LatLng(-5.088544046019581, -42.81123803149089),
-      infoWindow: InfoWindow(title: 'IFPI'),
+    Marker marcadorIfpi = Marker(
+      markerId: const MarkerId('IFPI'),
+      position: const LatLng(-5.088544046019581, -42.81123803149089),
+      icon: iconeIfpi,
+      infoWindow: const InfoWindow(title: 'IFPI'),
     );
-    Marker marcadorIfpiSul = const Marker(
-      markerId: MarkerId('IFPI Sul'),
-      position: LatLng(-5.101723, -42.813114),
-      infoWindow: InfoWindow(title: 'IFPI Sul'),
+    Marker marcadorIfpiSul = Marker(
+      markerId: const MarkerId('IFPI Sul'),
+      position: const LatLng(-5.101723, -42.813114),
+      icon: iconeIfpiSul,
+      infoWindow: const InfoWindow(title: 'IFPI Sul'),
     );
     marcadoresLocal.add(marcadorPonteEstaiada);
     marcadoresLocal.add(marcadorIfpi);
     marcadoresLocal.add(marcadorIfpiSul);
+
+    // A tela pode ter sido fechada enquanto as imagens carregavam
+    if (!mounted) return;
     setState(() {
       _markers = marcadoresLocal;
     });
@@ -108,7 +174,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _onMapCreated(GoogleMapController controller) async {
     mapController = controller;
-    _carregarMarcadores();
     // Pede a permissão e move a câmera até a posição atual do celular
     try {
       Position posicao = await _determinePosition();
