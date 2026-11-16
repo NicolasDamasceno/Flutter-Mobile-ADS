@@ -15,6 +15,7 @@ Os enunciados de cada atividade estão na pasta [`Atividades-Pdf`](Atividades-Pd
 | [`20.0-alcool-ou-gasolina`](20.0-alcool-ou-gasolina) | Container com TextField | Calculadora álcool ou gasolina (inclui PDF de entrega) |
 | [`20.2-sqflite-contatos`](20.2-sqflite-contatos) | Persistência com SqFlite | Cadastro de contatos: salvar, consultar, alterar e excluir (inclui PDF de entrega) |
 | [`21.2-google-maps`](21.2-google-maps) | Google Maps | Mapa com `google_maps_flutter` configurado para Android e iOS |
+| [`google-maps-atividade/discovery`](google-maps-atividade/discovery) | Google Maps (MVC) | App "Discovery": 6 cards de categorias, mapa com estabelecimentos reais de Teresina em cada categoria, salvar locais e barra inferior com Home, Salvos e Perfil |
 
 ## Como executar
 
@@ -26,9 +27,9 @@ flutter pub get
 flutter run
 ```
 
-### Chave do Google Maps (21.2)
+### Chave do Google Maps (21.2 e google-maps-atividade)
 
-A chave da API não fica no repositório. Para rodar o projeto `21.2-google-maps`, crie:
+A chave da API não fica no repositório. Para rodar `21.2-google-maps` ou `google-maps-atividade/discovery`, crie no projeto:
 
 - `android/local.properties` com a linha `MAPS_API_KEY=sua_chave`
 - `ios/Flutter/Secrets.xcconfig` com a linha `MAPS_API_KEY = sua_chave`
